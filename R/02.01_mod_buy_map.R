@@ -25,6 +25,15 @@ mod_buy_map_ui <- function(id){
   tagList(
     fillRow(
       fillCol(
+        HTML("<br>"),
+        sidebarPanel(selectInput(ns("Surf_Ref"), 
+                                 "Surface de référence", Surf_Ref),
+                     width = 12),
+        leafletOutput(ns("legend")),
+        HTML("<p style=\"position:absolute;bottom:0;left:0;font-size:10px;margin:5px\">Le niveau administratif affiché est celui du département. Le détail au niveau des codes postaux est accessible à l'aide du zoom ou de la fonction 'recherche'.</p>"),
+        flex = c(.3, 2, 4, 1)
+      ),
+      fillCol(
         leafletOutput(ns("guadeloupe")),
         HTML("<div></div>"),
         leafletOutput(ns("martinique")),
@@ -38,16 +47,8 @@ mod_buy_map_ui <- function(id){
         flex = c(10, 0.5, 10, 0.5, 10, 0.5, 10, 0.5, 10))
       ,
       fillCol(leafletOutput(ns("metropole")), flex = c(10)),
-      fillCol(
-        leafletOutput(ns("legend")),
-        sidebarPanel(selectInput(ns("Surf_Ref"), 
-                                 "Surface de référence", Surf_Ref),
-                     HTML("<div></div><p>Le niveau administratif affiché est celui du département. Le détail au niveau des codes postaux est accessible à l'aide du zoom ou de la fonction 'recherche'.</p>"),
-                     # id = "controls",
-                     width = 12)
-      ),
       height = "100%", width = "100%",
-      flex = c(1, 6, 1.5)
+      flex = c(1, 1.5, 6)
     )
   )
   

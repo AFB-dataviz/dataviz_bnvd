@@ -65,6 +65,41 @@ footer {
   background-color: white !important;
 }
 
+.leaflet-right .leaflet-control {
+  margin-right: 5px;
+}
+
+.leaflet-top .leaflet-control {
+  margin-left: 5px;
+}
+
+.legend {
+  line-height: 16px;
+}
+
+.info {
+  padding: 2px 2px;
+  box-shadow: 0 0 0;
+  font: 12px/16px Arial Helvetica, sans-serif;
+}
+
+.col-sm-12 {
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.well {
+  padding: 0;
+  box-shadow: 0 0 0;
+  background-color: white;
+  border: 0px;
+}
+
+.selectize-dropdown .selectize-input {
+  font-size: 14px;
+  line-height: 16px;
+}
+
 .storyboard-nav .sbframelist {
     margin: 0 auto;
     width: 94%;

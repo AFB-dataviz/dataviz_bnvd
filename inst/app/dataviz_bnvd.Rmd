@@ -2,6 +2,7 @@
 title: "Les Produits Phytosanitaires en France"
 resource_files:
 - www/logo_ofb_mtes.png
+- www/GitHub-Mark-32px.png
 runtime: shiny
 output:
   flexdashboard::flex_dashboard:
