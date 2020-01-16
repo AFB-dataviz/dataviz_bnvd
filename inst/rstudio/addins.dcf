@@ -1,0 +1,4 @@
+Name: Run BNV-D Shiny app
+Description: Run the Shiny app describing data from the BNV-D
+Binding: run_app_rstudio
+Interactive: false

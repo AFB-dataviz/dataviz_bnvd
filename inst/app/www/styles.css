@@ -1,0 +1,138 @@
+/* Customize fonts */
+body, label, input, button, select { 
+  font-family: 'Helvetica Neue', Helvetica;
+  font-weight: 200;
+}
+
+h1, h2, h3, h4 { font-weight: 400; }
+
+h6 {
+  font-style: italic;
+  padding: 0px;
+  margin: 0px 0px 1px 0px;
+}
+
+th {
+  font-weight: 400;
+  font-style: italic;
+}
+
+footer {
+  background-color: white;
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  top: auto;
+  width: calc(100vw);
+  height: 50px;
+  vertical-align: middle;
+}
+
+.navbar-inverse .navbar-nav {
+  font-variant: small-caps;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.navbar .navbar-nav li a {
+  margin-right: 0px;
+  margin-left: 0px;
+  padding-right: 5px;
+  padding-left: 5px;
+}
+
+.tab-content {
+  overflow: visible;
+}
+
+.section.sidebar {
+  top: 75px;
+}
+.sidebar {
+  height: calc(100vh - 135px);
+}
+
+.flexfill-item-inner {
+    display: flex;
+    flex: 1 1 auto;
+}
+
+/* If not using map tiles, show a white background */
+.leaflet-container {
+  background-color: white !important;
+}
+
+.storyboard-nav .sbframelist {
+    margin: 0 auto;
+    width: 94%;
+    height: 50px;
+    overflow: visible;
+    text-shadow: none;
+    margin-bottom: 8px;
+}
+
+.storyboard-nav .sbnext, .storyboard-nav .sbprev {
+    float: left;
+    width: 2%;
+    height: 50px;
+    font-size: 50px;
+}
+
+.storyboard-nav .sbframelist ul li {
+  font-size: 16px;
+  font-weight: bold;
+  width: auto;
+}
+
+.sbframe-component {
+  height: calc(100vh - 190px);
+}
+
+.sbframe-commentary {
+    display: block;
+    width: 50%;
+    height: calc(100vh - 190px);
+}
+
+.div .dygraph-label .dygraph-title {
+  font-size: 14;
+  font-weight: 200;
+  text-align: left;
+}
+
+#dashboard-container {
+  max-height: calc(100vh - 125px);
+}
+
+#navbar {
+  max-height: 75px;
+}
+
+#controls {
+  /* Appearance */
+  background-color: white;
+  padding: 0 20px 20px 20px;
+  cursor: move;
+  /* Fade out while not hovering */
+  opacity: 0.65;
+  zoom: 0.9;
+  transition: opacity 500ms 1s;
+}
+
+#controls:hover {
+  /* Fade in while hovering */
+  opacity: 0.95;
+  transition-delay: 0;
+}
+
+/* Position and style citation */
+#cite {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  font-size: 12px;
+}
+

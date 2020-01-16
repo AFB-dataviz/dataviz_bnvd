@@ -1,0 +1,465 @@
+---
+title: "Les Produits Phytosanitaires en France"
+resource_files:
+- www/logo_ofb_mtes.png
+runtime: shiny
+output:
+  flexdashboard::flex_dashboard:
+    css: www/styles.css
+    encoding: UTF-8
+    orientation: rows
+    social: twitter
+    theme: readable
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(bnvd)
+library(sf)
+library(shiny)
+
+# Option à commenter pour déploiement en ligne!!
+session$onSessionEnded(stopApp)
+
+data("liste_departements")
+data("bnvd_ventes")
+data("bnvd_ventes_totales")
+data("tendances")
+data("classement_substances")
+
+palette_pente <- 
+  lapply(split(tendances$pente, tendances$classification), 
+         function(x) (
+           leaflet::colorNumeric(c("#39a9dc", "#8cc63f", 
+                          "#E6E6E6",
+                          "#FE9A2E", "#61210B"),
+                        domain = c(-1.05, 1.05) *
+                          max(abs(x), na.rm = TRUE))
+         ))
+  
+
+palette_legend <- 
+    lapply(split(tendances$pente, tendances$classification), 
+         function(x) (
+           leaflet::colorNumeric(c("#39a9dc", "#8cc63f", 
+                          "#E6E6E6",
+                          "#FE9A2E", "#61210B"),
+                        domain = c(-1.05, 1.05) *
+                          max(abs(x), na.rm = TRUE),
+                        reverse = TRUE)
+         ))
+
+```
+
+```{r}
+HTML("<footer><a href = \"https://github.com/AFB-dataviz/dataviz_bnvd\" target = \"_blank\" style=\"float:left; margin-left:10px; margin-top:9px; margin-bottom:9px;\"><img src = \"www/GitHub-Mark-32px.png\"><span style=\"color:black;margin-left:5px;font-size:12px;\">Code source</span></a><img src=\"www/logo_ofb_mtes.png\" height=\"40\" style=\"float:right; margin-right:10px;margin-top:5px; margin-bottom:5px;\"></footer>")
+```
+
+
+Tendances des ventes {.storyboard}
+=======================================================================
+
+Inputs {.sidebar data-width=200}
+-----------------------------------------------------------------------
+
+**VENTES REALISEES ENTRE 2008 ET `r max(bnvd_ventes$annee)`**
+
+<br>
+
+```{r}
+mod_select_ui("department", 
+              label = "Département", 
+              choices = liste_departements,
+              selected = "FRANCE")
+
+choix_departement <- callModule(mod_select_server,
+                                "department")
+
+mod_select_ui("substance_class",
+              label = "Classe de substance",
+              choices = 
+                  list(
+                    `Toutes substances`               = "toutes_substances",
+                    `Dangereux pour l'environnement`  = "danger_environnement",
+                    `Dangereux pour la santé humaine` = "danger_sante",
+                    `Autres substances`               = "autres_substances"
+                  ),
+                selected = "danger_environnement")
+
+choix_classe <- callModule(mod_select_server,
+                           "substance_class")
+```
+
+<p style="font-size:10px">Classes de substance basées sur la redevance pour pollution diffuse (<a href="https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006074220&idArticle=LEGIARTI000006833066&dateTexte=" target="_blank">article L213-10-8 du code de l'environnement</a>)</p>
+
+### Ventes totales
+
+```{r}
+mod_sales_map_ui("sales_map")
+callModule(mod_sales_map_server, "sales_map", 
+           data = tendances,
+           choix_departement = choix_departement,
+           classe_substance = choix_classe,
+           palette_map = palette_pente,
+           palette_legend = palette_legend)
+
+```
+
+---
+
+```{r}
+mod_global_trend_ui("all_substances")
+callModule(mod_global_trend_server, "all_substances",
+           data = bnvd_ventes_totales, 
+           tendances = tendances,
+           departement = choix_departement,
+           classe_substance = choix_classe,
+           palette_custom = palette_pente)
+```
+
+### Substances les plus vendues
+
+```{r}
+mod_table_substances_ui("top_ventes")
+nombre_substance <- callModule(mod_table_substances_server, "top_ventes",
+                               data = classement_substances, 
+                               departement = choix_departement,
+                               classe_substance = choix_classe,
+                               period = range(bnvd_ventes_totales$annee))
+```
+
+- *N min., orga.: substance minérale ou organique dangereuse pour l'environnement*
+- *T, T+, CMR: substance toxique, très toxique, cancérogène, mutagène, reprotoxique*
+
+---
+
+```{r}
+mod_trend_plot_ui("trend_substances")
+callModule(mod_trend_plot_server, "trend_substances", 
+           data = bnvd_ventes, 
+           departement = choix_departement,
+           classe_substance = choix_classe,
+           main = "Tonnes de substances vendues")
+```
+
+Quantites achetees {.storyboard}
+=======================================================================
+
+Inputs {.sidebar data-width=200}
+-----------------------------------------------------------------------
+
+**ACHATS REALISES ENTRE 2015 ET `r max(DPT_Layer_Pt$annee)`**
+
+<br>
+
+```{r}
+mod_select_ui("substance_class2",
+              label = "Classe de substance",
+              choices = 
+                  list(
+                    `Toutes substances`               = "toutes_substances",
+                    `Dangereux pour l'environnement`  = "danger_environnement",
+                    `Dangereux pour la santé humaine` = "danger_sante",
+                    `Autres substances`               = "autres_substances"
+                  ),
+                selected = "danger_environnement")
+
+choix_classe2 <- callModule(mod_select_server,
+                           "substance_class2")
+
+```
+
+<p style="font-size:10px">Classes de substance basées sur la redevance pour pollution diffuse (<a href="https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006074220&idArticle=LEGIARTI000006833066&dateTexte=">article L213-10-8 du code de l'environnement</a>)</p>
+
+```{r}
+mod_slider_ui("annee_achat", label = "Année",
+              values = 2015:max(DPT_Layer_Pt$annee),
+              value = max(DPT_Layer_Pt$annee), 
+              step = 1, ticks = TRUE, animate = FALSE, sep = "")
+
+choix_annee <- callModule(mod_slider_server,
+                          "annee_achat")
+
+```
+
+<p style = "position:absolute;bottom:0;left:0;font-size:10px;margin:5px">Concernant les données des départements d’outre-mer, il semble qu’un nombre significatif de codes postaux acheteurs n’aient pas été saisis ce qui sous-estime les quantités pour ces territoires.</p>
+
+### Substances achetées
+
+
+```{r}
+mod_buy_stats_ui("buy_stats")
+callModule(mod_buy_stats_server, "buy_stats", 
+           annee = choix_annee, classe = choix_classe2)
+
+```
+
+### Substances achetées par hectare
+
+```{r}
+mod_buy_map_ui("buy_map")
+callModule(mod_buy_map_server, "buy_map",
+           annee = choix_annee, classe = choix_classe2) 
+```
+
+
+Methodologie
+=======================================================================
+
+#### Principe de fonctionnement et limites de l'outil de data-visualisation
+
+Cette application de visualisation de données est conçue pour représenter les données issues de la BNV-d sous des formes agrégées. Toutes les agrégations sont réalisées sur les seules données brutes issues de la base nationale, **sans aucune modification ou correction de ces données brutes**. De fait, toute erreur ou omission de données dans les déclarations peut impacter les traitements et les représentations qui en sont faits dans l’application.
+
+#### Origine des données
+
+La [Loi sur l'eau et les milieux aquatiques de 2006](http://www.legifrance.gouv.fr/affichTexte.do?cidTexte=JORFTEXT000000649171) (LEMA) oblige les distributeurs agréés pour la vente de produits phytopharmaceutiques (PPP) à déclarer leurs ventes annuelles sur le territoire national avant le 31 mars de l’année suivant celles-ci. Les déclarations doivent être réalisées auprès des agences et offices de l’eau dont dépendent les sièges des distributeurs. Les données déclaratives doivent permettre d’améliorer la traçabilité des ventes de PPP, et d’établir le montant de la redevance pour pollutions diffuses (RPD) Ce montant varie en fonction de la quantité et de la composition de chaque produit commercialisé, [code de l’environnement (art. L. 213-10-8)](http://www.legifrance.gouv.fr/affichCode.do;jsessionid=9D0E261011F1BE745FB95127C44BD6F5.tpdjo08v_2?idSectionTA=LEGISCTA000006195230&cidTexte=LEGITEXT000006074220&dateTexte=20111220) définissant les catégories de substances taxées et les taux associés.
+Les données déclaratives alimentent la banque nationale des ventes de PPP par les distributeurs agréés (BNV-D). Les saisies de quantités de produits vendus sont ensuite transformées en quantités de substances actives (SA) grâce à un référentiel de données fournissant la composition des produits et le classement des substances au regard des [arrêtés pris chaque année listant les substances soumises à la redevance pour pollutions diffuses](http://redevancephyto.developpement-durable.gouv.fr/reglementation).
+Les déclarations des distributeurs sont enregistrées sous deux formes :
+
+- le format bilan, en vigueur depuis 2008, détaille les ventes de chaque établissement d’un distributeur ;
+- le format registre, en vigueur depuis 2013, détaille les données de vente de chaque établissement au code postal de l’acheteur.
+
+Les données de la BNV-D permettent d’avoir une visualisation globale grâce aux bilans depuis 2008 et plus fine des achats au code postal de l’acheteur grâce aux registres, à partir de 2013. 
+
+La BNV-D permet de calculer des indicateurs de suivi des ventes et des achats de produits phytopharmaceutiques. Elle ne donne aucune information directe quant à la localisation et à la période d'utilisation des produits qu'elle comptabilise. 
+
+Les usages des produits phytopharmaceutiques déclarés sont agricoles, mais également non agricoles, sans que les proportions de ces usages puissent être précisément établies à partir des informations issues des données brutes de la base BNV-D. 
+
+#### Le suivi de la consommation des substances actives
+
+##### 1/ par le biais du suivi des ventes par les distributeurs
+
+###### Contenu des données
+
+Les données des ventes de SA se basent sur les déclarations enregistrées depuis 2008. Elles concernent des ventes réalisées par des distributeurs établis en France.
+
+###### Actualisation des données
+
+Une nouvelle édition des données des ventes réalisées jusqu’à l’année N est publiée au dernier trimestre de l’année N+1.
+Les déclarations peuvent être modifiées pendant les deux années suivant les ventes. Les données peuvent donc évoluer jusqu’au 31 décembre de l’année N+2. 
+
+##### 2/ par le biais du suivi des achats par les acheteurs 
+
+###### Contenu des données
+
+Les données des achats de SA se basent sur les déclarations enregistrées depuis 2013. Elles concernent des achats réalisés auprès de distributeurs établis en France ou à l’étranger.
+
+###### Actualisation des données
+
+Une nouvelle édition des données des achats réalisés jusqu’à l’année N est publiée au dernier trimestre de l’année N+1.
+Les déclarations peuvent être modifiées pendant les deux années suivant les ventes. Les données peuvent donc évoluer jusqu’au 31 décembre de l’année N+2. 
+
+###### Registres partiels pour les années de vente 2013 et 2014
+
+L'année 2013 est l’année d’entrée en vigueur des déclarations sous forme de registre. Il est estimé que 30% des registres ont été renseignés cette année-là. En 2014, ce chiffre a atteint 90%. Aussi, l’année de 2015 doit être considérée comme année de référence pour suivre l’évolution des quantités de produits achetées. 
+
+###### Traitement limitant l’identification des acheteurs
+
+Les données d’une zone postale sont diffusées sous réserve d’un traitement visant à limiter l’identification des acheteurs. Ainsi, la mention nc (pour non communiquée) est attribuée aux données des zones postales regroupant 1 à 5 acheteurs potentiels.
+Le nombre d’acheteurs potentiels dans une zone postale correspond au nombre d’établissements immatriculés au répertoire SIRENE (lien de téléchargement en fin de document) et dont le code d’activité principale (code APE, issu de la nomenclature NAF) apparaît dans la liste suivante : 
+
+- 01.1 : culture non permanentes ;
+- 01.2 : cultures permanentes ;
+- 01.3 : reproduction de plantes ;
+- 01.4 : production animale ;
+- 01.5 : culture et élevage associés ;
+- 01.6 : activités de soutien à l'agriculture et traitement primaire des récoltes ;
+- 01.7 : chasse, piégeage et services annexes ;
+- 02.1 : sylviculture et autres activités forestières. 
+
+La version du répertoire SIRENE prise en compte est celle disponible au moment de la production des données diffusées.
+La méthode retenue pour limiter l’identification des acheteurs présente un biais. Compte tenu des délais de prise en compte des cessations d’activité, le répertoire SIRENE surestime le nombre d'établissements par zone postale. Cela réduit le nombre de codes postaux dont les données ne sont pas communiquées. Toute anomalie doit être signalée via le formulaire de contact du site data.eaufrance.fr (lien en fin de document)
+Les données non communiquées à l’échelle d’une zone postale sont agrégées et fournies au niveau national.
+
+###### Classement des substances en fonction de leur toxicité
+
+Les substances phytosanitaires sont assignées,par arrêté ministériel, à différentes classes de toxicité (<a href="https://www.legifrance.gouv.fr/affichCodeArticle.do?cidTexte=LEGITEXT000006074220&idArticle=LEGIARTI000006833066&dateTexte=" target="blank">article L213-10-8 du code de l'environnement</a>). Ces classes sont:
+
+- T, T+, CMR : substance toxique, très toxique, cancérogène, mutagène, toxique pour la reproduction;
+- N minéral : substance minérale dangereuse pour l’environnement;
+- N Organique : substance organique dangereuse pour l’environnement;
+- Autre : autre substance.
+
+D'un arrêté ministériel à l'autre, le classement d'une substance peut évoluer en fonction des connaissances acquises sur la substance. Dans la BNV-D, chaque substance peut donc se trouver assignée à différentes classes de toxicité. Pour simplifier la compréhension et en assumant que les derniers classements intègrent les dernières connaissances sur les substances, il n'a été conservé pour chaque substance que le classement le plus récent au plan réglementaire. 
+
+De plus, afin de faciliter leur compréhension, ces classes ont été renommées de la manière suivante:
+
+- substances dangereuses pour la santé humaine: T, T+, CMR;
+- substances dangereuses pour l'environnement: N minéral et N organique;
+- autres substances.
+
+Il est également possible d'afficher les résultats pour l'ensemble des substances (choix 'Toutes substances' dans le filtre 'Classe de substance').
+
+###### Regroupement par fonction des substances active 
+
+Ce regroupement s'intéresse à la cible que le produit phytopharmaceutique est destiné à combattre : 
+
+- les fongicides (et bactéricides) utilisés contre les champignons (et les bactéries) ; 
+-	les insecticides et les acaricides, utilisés respectivement contre insectes et autres arthropodes  et contre les acariens ;
+-	les herbicides, utilisés pour détruire les adventices (« mauvaises herbes ») ;
+- les nématicides, utilisés contre les vers nématodes;
+- les substances de croissance, utilisées pour agir sur des mécanismes physiologiques de la plante (e.g. différenciation, élongation cellulaire, renforcement des tiges) des plantes sans nuire à celle-ci;
+-	les autres produits dont les quantités vendues ou achetées sont moindre regroupent notamment les adjuvants, les médiateurs chimiques, les molluscicides, les répulsifs, les rodenticides et les taupicides.
+
+#### Méthodes de calcul
+
+##### Onglet ‘Evolution des ventes’
+
+Les données de ventes de substances actives, au département du distributeur (données de bilan uniquement) ont été utilisées. Ces données présentent la chronique la plus longue et permettent donc de mieux évaluer les tendances.
+
+Les tendances ont été calculées pour la période 2008-`r max(bnvd_ventes$annee)` à deux échelles spatiales: (i) France entière et (ii) chaque département (métropole et outre-mer) et en considérant (a) soit la somme des quantités de l’ensemble des substances pour la classe de substance sélectionnée (Ventes totales) ou (b) soit les quantités correspondant à chaque substance active (Substances les plus vendues). 
+
+**Par ailleurs, afin de limiter les effets de la variabilité inter-annuelle, des moyennes tri-annuelles ont été calculées (moyenne des quantités vendues sur trois ans)**. Ceci explique que les données des années aux extrémités de la chronique ne sont pas représentées sur le graphique d’évolution des ventes totales.
+
+Le calcul des tendances est réalisé selon la **méthode de Theil-Sen** [(Senn 1968)](https://amstat.tandfonline.com/doi/abs/10.1080/01621459.1968.10480934#.XRPkmo_grIU). Cette méthode, non paramétrique et robuste, permet d’estimer la pente d’une relation linéaire entre deux variables en calculant la médiane de l’ensemble des pentes obtenues entre chaque paire de points. 
+
+Puisque ce sont bien les tendances et non les quantités vendues qui nous intéressent ici, nous avons exprimé les quantités vendues en pourcentage de la quantité vendue moyenne sur l’ensemble de la chronique. **Les tendances sont ainsi exprimées en pourcentage de la quantité de substance vendue moyenne par an.**
+
+Pour la France entière, pour chaque département et chaque classe de substance, **les substances constituant plus de 50% des quantités vendues sur la période ont été identifiées**. Les substances dont les tendances sont inférieures à -5% par an sont considérées comme étant en diminution (flèche verte) et celles dont les tendances sont supérieures à 5% par an sont considérées comme étant en augmentation (flèche rouge).
+
+##### Onglet 'Quantités achetées'
+
+###### Calcul de l’indicateur « quantité d’achat de substances actives répartie à la surface agricole »
+
+Les données d’achats de substances actives, au code postal acheteur (données des registres uniquement) ont été utilisées.
+
+Les quantités de substances actives rattachées à un code postal non valide ne sont pas prises en compte. 
+Comme pour le suivi des achats de SA, les données d’une zone postale sont diffusées sous réserve d’un traitement visant à limiter l’identification des acheteurs. Ainsi, la mention nc (pour non communiquée) est attribuée aux données des zones postales regroupant 1 à 5 acheteurs potentiels.
+
+La surface agricole utilisée (SAU) et la surface toujours en herbe (STH) correspondent aux surfaces en hectares des exploitations ayant leur siège dans la zone du territoire concerné. Dans le cas d’une SAU nulle, le ratio n’est pas calculé (« SAU nulle »). C’est notamment le cas de codes postaux plutôt urbains (Paris et petite couronne par exemple) qui possèdent des organismes acheteurs mais pas de surface agricole. La SAU et la STH sont calculées à partir des données communales issues du recensement agricole 2010. Ainsi, pour une commune donnée, ces surfaces sont réaffectées à chaque code postal, sur lesquelles la commune se situe, au prorata de la surface de la commune couverte par le code postal considéré. Les surfaces réaffectées aux codes postaux sont ensuite sommées, dans le sens où un code postal peut desservir plusieurs communes.
+Les calculs portent uniquement sur la métropole, faute de disposer simplement des contours des codes postaux sur les DOM.
+
+Rapporter les quantités de SA à la SAU permet d’évaluer le ratio global de consommation des SA par hectare de surface agricole. Tandis que les quantités de SA rapportées à la SAU minorée des STH permet de tenir compte du fait que certaines SA ne sont pas utilisées sur les prairies permanentes (insecticides par exemple).
+
+#### Précautions d’usage des données diffusées
+
+##### Ecart de quantités entre les bilans et les registres
+
+Pour une même année de vente, les quantités de produits déclarées dans les bilans et les registres peuvent différer. Ces écarts s’expliquent par le fait que les déclarants n’ont pas les mêmes obligations de déclaration en fonction de leur situation. Pour les ventes effectuées auprès de professionnels, la déclaration du registre et du bilan est requise. Pour des ventes effectuées à des amateurs, seuls les bilans sont obligatoires. Certains distributeurs déclareront ces ventes aux amateurs sous les deux formats. Les acheteurs se fournissant à l’étranger déclarent uniquement des bilans.
+
+##### Quantités anormalement élevées
+
+Le contrôle des quantités de produit déclarées porte, en priorité, sur les substances entrant le calcul de la RPD. Des quantités anormalement élevées peuvent être relevées pour les substances non soumises à redevance. Certaines de ces incohérences s’expliquent par une saisie erronée des unités. Des évolutions de la BNV-D sont prévues pour minimiser le nombre de ces anomalies.
+
+##### Quantités anormalement basses
+Tout comme l’ensemble des données, les données des départements d’outre-mer (DOM) reflètent les achats déclarés par les distributeurs. Concernant ces territoires, il semble qu’un nombre significatif de codes postaux acheteurs n’aient pas été saisis ce qui sous-estime de façon notoire les quantités de ces territoires.
+
+
+##### Intégration évolutive de certains PPP
+
+Les PPP servant pour les traitements de semences n’ont été intégrés à la BNV-D qu’à partir de 2012. De même, les achats à l’étranger n’ont été intégrés qu’à partir de 2012 dans la BNV-D. 
+
+#### Données utilisées :
+
+Les données mobilisées sont :
+
+-	les [données d’achats au code postal de la BNV-D](http://www.data.eaufrance.fr/jdd/a69c8e76-13e1-4f87-9f9d-1705468b7221);
+-	Les [données de ventes au département de la BNV-D](http://www.data.eaufrance.fr/jdd/bd45f801-45f7-4f8c-b128-a1af3ea2aa3e);
+-	le [recensement agricole 2010](http://agreste.agriculture.gouv.fr/recensement-agricole-2010/resultats-donnees-chiffrees/), pour les SAU et STH communales;
+-	les [contours des codes postaux](http://www.data.gouv.fr/fr/datasets/fond-de-carte-des-codes-postaux/);
+-	les [types de substances](http://www.data.gouv.fr/fr/datasets/donnees-ouvertes-du-catalogue-e-phy-des-produits-phytopharmaceutiques-matieres-fertilisantes-et-supports-de-culture-adjuvants-produits-mixtes-et-melanges/) (fonction herbicide par exemple). 
+
+Les données des codes postaux comportant 5 acheteurs potentiels ou moins ne sont pas diffusées. 
+
+[Formulaire de signalement](www.data.eaufrance.fr/contact) d’une anomalie liée au traitement limitant l’identification des acheteurs.
+
+
+Mentions legales
+=======================================================================
+
+#### Services gestionnaires
+
+Ce site est une co-production OFB – SDES.
+
+##### Pour l’onglet ‘Evolution des ventes’
+
+Office français de la biodiversité  
+12, cours Lumière  
+94300 Vincennes  
+
+*Directeur de publication* : Pierre Dubreuil, directeur de l’Office français de la biodiversité (OFB)
+
+##### Pour l’onglet ‘Quantités achetées’
+
+Ministère de la Transition écologique et solidaire  
+Commissariat général au développement durable  
+Service de la donnée et des études statistiques (SDES)  
+Tour Séquoia  
+92055 La Défense cedex  
+Téléphone : 01 40 81 21 22  
+
+*Directeur de publication* : Sylvain Moreau, chef du service de la donnée et des études statistiques (SDES)  
+
+#### Propriété intellectuelle
+
+Tous les éléments présentés sur ce site sont soumis à la législation relative au droit des informations publiques et sont couverts par le droit d'auteur.
+
+Les données mises à disposition sur le site sont consultables et téléchargeables gratuitement sous licence ouverte telle que décrite dans le [décret n°2017-638](https://www.legifrance.gouv.fr/eli/decret/2017/4/27/2017-638/jo/texte) ; sauf spécification contraire, elles peuvent être réutilisées à des fins commerciales et sans versement de redevances.
+
+La réutilisation des informations suppose que celles-ci ne soient pas altérées, que leur sens ne soit pas dénaturé et que leurs sources et la date de leur dernière mise à jour soient mentionnées : Banque Nationale des Ventes par les Distributeurs (BNV-D), extraction du 07/01/2020.
+ 
+#### Liens hypertextes proposés sur le site 
+Lorsque des liens renvoient vers d'autres sites web, l'OFB et le SDES déclinent toute responsabilité quant au contenu et au fonctionnement des sites web proposés en liens.
+ 
+#### Établir un lien vers ce site
+Tout site public ou privé est autorisé à établir, sans autorisation préalable, un lien vers les informations diffusées par l’application. La mention explicite du site d’origine dans l’intitulé du lien est impérative.
+
+L’autorisation de mise en place d’un lien est valable pour tout support, à l’exception de ceux diffusant des informations à caractère polémique, pornographique, xénophobe ou pouvant, dans une plus large mesure, porter atteinte à la sensibilité du plus grand nombre.
+
+L’OFB et le SDES déclinent toute responsabilité concernant les liens créés par d'autres sites vers leurs propres sites. L'existence de tels liens ne peut permettre d'induire que l’OFB ou le SDES cautionnent ces sites ou qu'ils en approuvent le contenu. L’OFB et le SDES se réservent le droit de demander la suppression d’un lien qu’il estime non-conforme à l’objet de l’outil, à ses missions ou plus généralement à l’éthique d’un site public.
+
+#### Traitement des données à caractère personnel
+Conformément à la loi Informatique et Liberté 78-17 du 6 janvier 1978 modifiée, vous disposez d'un droit d'opposition (art. 38), d'accès (art. 39), de rectification ou de suppression (art. 40) des données qui vous concernent. Vous pouvez exercer ce droit en vous adressant au ministère de la Transition écologique et solidaire.
+Ce droit s'exerce, en justifiant de son identité : 
+
+*Par voie postale :*  
+Ministère de la Transition écologique et solidaire  
+Service de la donnée et des études statistiques (SDES)  
+Tour Séquoia  
+92055 La Défense cedex  
+France  
+
+*Via le formulaire en ligne :* [ici](https://www.statistiques.developpement-durable.gouv.fr/contact)  
+ 
+#### Information sur le service de mesure d'audience
+La navigation des usagers sur ce site peut être analysée grâce au dépôt de cookies sur votre navigateur.
+
+#### Usage
+L'utilisateur reconnaît utiliser ces informations sous sa responsabilité exclusive. L’OFB et le SDES ne peuvent être tenus responsables de l'interprétation qui serait faite des informations contenues dans ce site.  
+
+-	Les utilisateurs sont responsables des interrogations qu’ils formulent ainsi que de l’interprétation et de l’utilisation qu’ils font des résultats. Il leur appartient d’en faire un usage conforme aux réglementations en vigueur et aux recommandations de la CNIL lorsque des données ont un caractère nominatif (loi n° 78.17 du 6 janvier 1978, relative à l’informatique, aux fichiers et aux libertés dite loi informatique et libertés).  
+-	Il appartient à l’utilisateur de ce site de prendre toutes les mesures appropriées de façon à protéger ses propres données et/ou logiciels de la contamination par d’éventuels virus circulant sur le réseau Internet. De manière générale, l'OFB et le SDES déclinent toute responsabilité à un éventuel dommage survenu pendant la consultation du présent site. Les messages que vous pouvez nous adresser transitant par un réseau ouvert de télécommunications, nous ne pouvons assurer leur confidentialité.
+
+#### Informations techniques
+##### Site
+Site réalisé avec R et RShiny 
+ 
+##### Hébergement du site
+Rstudio - plateforme Shinyapps - http://shinyapps.io/
+
+##### Conception du site
+Office français de la biodiversité (OFB)  
+12, cours Lumière
+94300 Vincennes
+
+Service de la donnée et des études statistiques (SDES)  
+Tour Séquoia  
+92055 La Défense cedex  
+ 
+##### Maintenance
+Office français de la biodiversité (OFB)  
+12, cours Lumière
+94300 Vincennes
+
+Service de la donnée et des études statistiques (SDES)  
+Tour Séquoia  
+92055 La Défense cedex  
+ 
+##### Contact
+[Formulaire de contact](https://www.statistiques.developpement-durable.gouv.fr/contact)
+
+##### Droit d’auteur
+Tous les contenus présents sur l’outil sont couverts par le droit d’auteur. Toute reprise est dès lors conditionnée à l’accord de l’auteur en vertu de l’article L.122-4 du Code de la Propriété Intellectuelle.
+

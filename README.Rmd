@@ -1,0 +1,39 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+# bnvd
+
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+<!-- badges: end -->
+
+The goal of the bnvd package is to provide a Shiny app to explore some of the data about sales of pesticides in France.
+
+## Installation
+
+You can install bnvd from [GitHub](https://github.com/) with:
+
+``` {r, eval=FALSE}
+install.packages("devtools")
+devtools::install_github(repo = "AFB-dataviz/dataviz_bnvd")
+```
+
+## Example
+
+The app can be run in RStudio using the Addins menu (Run BNV-D Shiny app) or directly in the console.
+
+```{r example, eval=FALSE}
+bnvd::run_app()
+```
+
