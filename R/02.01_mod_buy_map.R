@@ -48,7 +48,7 @@ mod_buy_map_ui <- function(id){
       ,
       fillCol(leafletOutput(ns("metropole")), flex = c(10)),
       height = "100%", width = "100%",
-      flex = c(1, 1.5, 6)
+      flex = c(2, 1, 5)
     )
   )
   
@@ -131,6 +131,7 @@ mod_buy_map_server <- function(input, output, session, annee = reactive("2015"),
                 colors = palette_custom,
                 opacity = transparence, 
                 title = Title_map,
+                position = "topleft",
                 labels = c("Plus de 5","Entre 2,5 et 5","Entre 1 et 2,5","Moins de 1","0","SAU nulle","Données non communiquées")) 
   })
   
