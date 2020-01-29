@@ -1,6 +1,6 @@
 Package: bnvd
 Title: Explore French pesticide sales data
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: person('Cédric', 'Mondy', email = 'cedric.mondy@afbiodiversite.fr', role = c('cre', 'aut'))
 Description: This Shiny app allows to explore French data about pesticide sales.
 License: MIT + file LICENSE

@@ -1,10 +1,12 @@
 #' Prepare the package data
 #' 
 #' @import dplyr
+#' @import tidyr
 #' @import shiny
 #' 
 #' @export
 prepare_data <- function(path = NULL, dev = TRUE) {
+
   ## Date de l'export des données ----
   date_preparation <- Sys.Date()
   
@@ -176,7 +178,15 @@ prepare_data <- function(path = NULL, dev = TRUE) {
     ))
   
   CP_Layer <- left_join(CP_Layer, 
-                        filter(INDIC_CP, !is.na(classification)) , # POURQUOI DES NA ???
+                        INDIC_CP %>% 
+                        # POURQUOI DES NA ???
+                        filter(!is.na(classification)) %>% 
+                          # AJOUTE LES CLASSIFICATIONS MANQUANTES
+                          complete(CP, classification) %>% 
+                          mutate_if(.predicate = is.numeric,
+                                    .funs = function(x) {
+                                      replace_na(x, -999)
+                                      }),
                         by = c("ID" = "CP")) %>% 
     mutate(classification = gsub(
       classification, 
